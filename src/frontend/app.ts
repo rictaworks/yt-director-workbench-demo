@@ -3,6 +3,8 @@ import type { Industry, Goal, IdeaType, DomainWarning, MonthlyReport, TaskStatus
 import { judgeDelay } from '../core/index.ts';
 import { ApiClient, ApiError } from './api.ts';
 import { channelText, planText, outlineText, scheduleText, briefText, reportText } from './artifacts.ts';
+import { Analytics } from './analytics.ts';
+import { common } from './common-messages.ts';
 import { messages as m, screens } from './messages.ts';
 import { dateInJapan, isValidMemo, normalizeError, numberLabel, parseRoute, routeHash, ViewRevision } from './view-model.ts';
 import type { Route, ScreenId } from './view-model.ts';
@@ -18,6 +20,7 @@ export class Workbench {
   private doc: Document;
   private win: Window;
   private api: ApiClient;
+  private analytics: Analytics;
   private data: Bootstrap | null = null;
   private route: Route;
   private activePlan = new Map<string, string>();
@@ -26,6 +29,7 @@ export class Workbench {
   private reportMonth = new Map<string, string>();
   private reportCache = new Map<string, MonthlyReport>();
   private busy = false;
+  private loading = false;
   private viewRevision = new ViewRevision();
   private requestRevision: number | null = null;
   private autoStopped = false;
@@ -48,6 +52,7 @@ export class Workbench {
     this.doc = options.document ?? root.ownerDocument;
     this.win = options.window ?? this.doc.defaultView!;
     this.api = options.api ?? new ApiClient();
+    this.analytics = new Analytics(this.win, this.doc);
     this.route = parseRoute(this.win.location.hash);
   }
 
@@ -159,7 +164,7 @@ export class Workbench {
     const header = this.el('header');
     const skip = this.el('a', m.skipToMain, {href: '#main-content', class: 'skip-link'});
     skip.addEventListener('click', event => { event.preventDefault(); this.content.focus(); });
-    header.append(skip, this.el('h1', m.appName), this.paragraph(m.subtitle), this.paragraph(m.generationNotice));
+    header.append(skip, this.el('a', common.backToList, {href: 'https://rictaworks.jp/#demos', target: '_blank', rel: 'noopener'}), this.el('h1', m.appName), this.paragraph(m.subtitle), this.paragraph(m.generationNotice));
     this.selector = this.el('div');
     this.nav = this.el('nav', '', {'aria-label': m.navigation});
     header.append(this.selector, this.nav);
@@ -167,18 +172,23 @@ export class Workbench {
     this.error = this.el('p', '', {role: 'alert', tabindex: '-1'});
     this.content = this.el('main', '', {id: 'main-content', tabindex: '-1'});
     const footer = this.el('footer'); footer.append(this.paragraph(m.resetNotice), this.paragraph(m.legalNotice));
-    this.root.replaceChildren(header, this.status, this.error, this.content, footer);
+    footer.append(this.link(common.legalLink, 'legal', ''), this.paragraph(common.copyright));
+    const banner = this.paragraph(m.resetNotice, 'demo-banner');
+    const consult = this.el('a', common.consult, {href: 'https://rictaworks.jp/', target: '_blank', rel: 'noopener', class: 'consult-button'});
+    this.root.replaceChildren(banner, header, this.status, this.error, this.content, footer, consult);
   }
   private async load(): Promise<void> {
+    if (this.loading) return;
+    this.loading = true;
+    this.render();
     this.status.textContent = m.loading; this.error.textContent = '';
     try {
       this.data = await this.api.request<Bootstrap>('/api/bootstrap');
       this.autoStopped = this.data.projects.some(project => project.ideas.some(idea => Boolean(idea.classification?.error)));
-      this.status.textContent = ''; this.render();
+      this.status.textContent = '';
     } catch (error) {
       this.status.textContent = ''; this.error.textContent = normalizeError(error);
-      this.content.replaceChildren(this.button(m.retry, () => { void this.load(); }));
-    }
+    } finally { this.loading = false; this.render(); }
   }
   private get project(): ProjectRecord | null { return this.data?.projects.find(project => project.id === this.route.projectId) ?? null; }
   private get plan(): PlanRecord | null {
@@ -190,7 +200,14 @@ export class Workbench {
     return judgeDelay({tasks: project.schedules.flatMap(schedule => schedule.tasks)}, this.data?.today ?? dateInJapan());
   }
   private render(): void {
-    if (!this.data) return;
+    if (this.route.screen === 'legal') {
+      this.nav.replaceChildren(); this.selector.replaceChildren();
+      this.renderLegal(); return;
+    }
+    if (!this.data) {
+      this.content.replaceChildren(this.loading ? this.paragraph(m.loading) : this.button(m.retry, () => { void this.load(); }));
+      return;
+    }
     this.formNumber = 0;
     this.selector.replaceChildren();
     const projectSelect = this.select('active-project', this.data.projects.map(item => ({id: item.id, label: item.clientAlias})), this.route.projectId, true);
@@ -221,6 +238,35 @@ export class Workbench {
       case 'brief': this.renderBrief(project); break;
       case 'report': this.renderReport(project); break;
     }
+  }
+  private renderLegal(): void {
+    this.content.replaceChildren(this.link(common.backToApp, 'home', ''), this.el('h2', common.legalLink));
+    for (const [title, paragraphs] of [
+      [common.termsHeading, common.terms], [common.disclaimerHeading, common.disclaimer], [common.privacyHeading, this.analytics.available ? [common.privacy[0], common.analyticsInfo, common.analyticsChoice] : common.privacy],
+    ] as const) {
+      const section = this.el('section'); section.append(this.el('h3', title));
+      for (const text of paragraphs) section.append(this.paragraph(text));
+      this.content.append(section);
+    }
+    const analytics = this.el('section', '', {'aria-label': common.privacyHeading});
+    analytics.append(this.paragraph(this.analytics.consented ? common.analyticsActive : common.analyticsStopped));
+    if (this.analytics.available) {
+      analytics.append(
+        this.button(common.analyticsAllow, () => { this.analytics.allow(); this.renderLegal(); }),
+        this.button(common.analyticsDeny, () => { this.analytics.deny(); this.renderLegal(); }),
+        this.el('a', common.googlePrivacy, {href: 'https://policies.google.com/privacy?hl=ja', target: '_blank', rel: 'noopener'}),
+      );
+    }
+    this.content.append(analytics);
+    const contact = this.el('section'); contact.append(this.el('h3', common.contactHeading));
+    const list = this.el('dl', '', {class: 'legal-contact-list'});
+    for (const [label, value] of common.contact) {
+      const detail = this.el('dd');
+      if (label === 'Web') detail.append(this.el('a', value, {href: value, target: '_blank', rel: 'noopener'}));
+      else detail.textContent = value;
+      list.append(this.el('dt', label), detail);
+    }
+    contact.append(list); this.content.append(contact);
   }
   private planSelector(project: ProjectRecord): void {
     const select = this.select('active-plan', project.plans.map(plan => ({id: plan.id, label: plan.titles[0] ?? plan.ideaTypeLabel})), this.plan?.id);

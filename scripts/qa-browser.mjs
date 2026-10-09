@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict';
 import { mkdir } from 'node:fs/promises';
 import { chromium } from '@playwright/test';
-import { createServer } from 'vite';
+import { createServer, preview } from 'vite';
 import { createRuntime } from './local-runtime.mjs';
 
 const runtime = await createRuntime({port:8787,persist:false});
 const server = await createServer({server:{host:'127.0.0.1',port:5173,strictPort:true}});
+let previewServer;
 let browser;
 let page;
 try {
@@ -53,6 +54,10 @@ try {
   await page.getByRole('button',{name:'台本構成を作成',exact:true}).click();
   await page.getByLabel('話すことの要点',{exact:true}).first().fill('最初に転職の悩みを紹介します');
   await page.getByLabel('撮影メモ',{exact:true}).first().fill('正面から撮影します');
+  await page.getByRole('link',{name:'利用規約・免責事項・連絡先',exact:true}).click();
+  await page.getByRole('heading',{name:'プライバシー・Cookie',exact:true}).waitFor();
+  await page.goBack();
+  assert.equal(await page.getByLabel('撮影メモ',{exact:true}).first().inputValue(),'正面から撮影します');
   await nav.getByRole('link',{name:'編集指示書',exact:true}).click();
   await page.goBack();
   await page.getByLabel('話すことの要点',{exact:true}).first().waitFor();
@@ -110,6 +115,47 @@ try {
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),true,'mobile horizontal overflow');
   await page.screenshot({path:'WORK/screenshots/home-mobile.png',fullPage:true});
   assert.equal(await page.getByRole('navigation').getByRole('link').count(),7);
+  for (const width of [1280,390,320]) {
+    await page.setViewportSize({width,height:900});
+    await page.getByRole('link',{name:'利用規約・免責事項・連絡先',exact:true}).click();
+    await page.getByRole('heading',{name:'連絡先',exact:true}).waitFor();
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,`legal overflow ${width}`);
+    const consultation=page.getByRole('link',{name:'ご相談はこちら',exact:true});
+    assert.equal(await consultation.getAttribute('href'),'https://rictaworks.jp/');
+    assert.equal(await consultation.getAttribute('rel'),'noopener');
+    const footer=page.locator('footer'); await footer.scrollIntoViewIfNeeded();
+    const copyright=await footer.locator('p').last().boundingBox(); const cta=await consultation.boundingBox();
+    assert.ok(copyright && cta && copyright.y+copyright.height<=cta.y,`footer clear of fixed CTA ${width}`);
+    await page.screenshot({path:`WORK/screenshots/legal-${width}.png`,fullPage:true});
+    await page.getByRole('link',{name:'← デモに戻る',exact:true}).focus();
+    await page.keyboard.press('Enter'); await page.getByRole('heading',{name:'A社',exact:true}).waitFor();
+  }
+  assert.equal(errors.length,0,errors.join('\n'));
+  // Exercise the built app at the exact production origin, with all responses served locally.
+  // No production API mutation or Google request is allowed during QA.
+  previewServer=await preview({preview:{host:'127.0.0.1',port:5174,strictPort:true}});
+  const isolated=await browser.newContext(); const external=[];
+  await isolated.route('**/*',async route=>{
+    const url=new URL(route.request().url());
+    if (url.origin!=='https://yt-director-workbench-demo.rictaworks.jp') {
+      external.push(url.origin); await route.abort(); return;
+    }
+    const port=url.pathname.startsWith('/api/')?8787:5174;
+    const response=await route.fetch({url:`http://127.0.0.1:${port}${url.pathname}${url.search}`});
+    await route.fulfill({response});
+  });
+  const built=await isolated.newPage();
+  built.on('pageerror',error=>errors.push(error.message));
+  await built.goto('https://yt-director-workbench-demo.rictaworks.jp/?q=fictional-query#legal/fictional-id');
+  await built.getByText('アクセス解析は現在停止中です。',{exact:true}).waitFor();
+  await built.getByRole('link',{name:'← デモに戻る',exact:true}).click();
+  await built.getByLabel('クライアントの呼称',{exact:true}).fill('架空の入力センチネル');
+  await built.getByRole('link',{name:'利用規約・免責事項・連絡先',exact:true}).click();
+  await built.goBack(); await built.goForward();
+  assert.equal(await built.locator('script[src*="googletagmanager"]').count(),0);
+  assert.deepEqual(external,[],'no analytics or other third-party network before verification');
+  assert.equal((await isolated.cookies()).some(cookie=>cookie.name.startsWith('_ga')),false);
+  await isolated.close();
   assert.equal(errors.length,0,errors.join('\n'));
   console.log('Browser workflow passed: 7 screens, manual recovery, persistence, notes, schedule, brief, report, copy, reload/history and mobile layout.');
   await context.close();
@@ -121,4 +167,4 @@ try {
     console.error('Failed page text:',await page.locator('body').innerText().catch(()=>'(unavailable)'));
   }
   throw error;
-} finally { await browser?.close(); await server.close(); await runtime.dispose(); }
+} finally { await browser?.close(); await server.close(); if (previewServer) await new Promise(resolve=>previewServer.httpServer.close(resolve)); await runtime.dispose(); }
