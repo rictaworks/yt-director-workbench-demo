@@ -36,7 +36,7 @@ export function validateSeconds(value: unknown): number {
 export function validateMetrics(value: unknown): MonthlyMetrics {
   if (!value || typeof value !== 'object') throw new DomainValidationError('metrics', MESSAGES.invalidMetrics);
   const m = value as MonthlyMetrics;
-  for (const key of ['views', 'subsDelta', 'conversions'] as const) if (!Number.isSafeInteger(m[key]) || m[key] < 0) throw new DomainValidationError(key, MESSAGES.invalidMetrics);
+  for (const key of ['views', 'subsDelta', 'conversions'] as const) if (!Number.isSafeInteger(m[key]) || (key !== 'subsDelta' && m[key] < 0)) throw new DomainValidationError(key, MESSAGES.invalidMetrics);
   if (typeof m.retention !== 'number' || !Number.isFinite(m.retention) || m.retention < 0 || m.retention > 100) throw new DomainValidationError('retention', MESSAGES.invalidMetrics);
   return { views: m.views, subsDelta: m.subsDelta, retention: m.retention, conversions: m.conversions };
 }

@@ -84,3 +84,23 @@ test('API persists real adapter contracts for confidence, manual override and da
     r=await call(`${base}/ideas`,'POST',{memo:'質問を分類します'});idea=r.json.ideas.at(-1);assert.equal(idea.classification.mode,'manual');assert.equal(idea.classification.error.code,'quota_exceeded');assert.equal(idea.ideaType,null);assert.equal(calls,3);
   }finally{db.close();}
 });
+
+test('API persists signed subscribers and rejects non-integers without weakening other ranges', async () => {
+  const db = createTestDatabase();
+  try {
+    const call = client(db);
+    const {json:project} = await call('/api/projects','POST',{clientAlias:'架空QA社'});
+    const base = `/api/projects/${project.id}`;
+    for (const [index,subsDelta] of [-10,0,10].entries()) {
+      const month = `2026-${String(index+1).padStart(2,'0')}`;
+      const response = await call(`${base}/metrics`,'PUT',{month,views:1000,subsDelta,retention:50,conversions:5});
+      assert.equal(response.result.status,200);
+      const loaded = await call(base);
+      assert.equal(loaded.json.metrics.find((item:any)=>item.month===month).subsDelta,subsDelta);
+    }
+    for (const invalid of [{subsDelta:1.5},{subsDelta:'abc'},{subsDelta:'-10'},{subsDelta:null},{subsDelta:9007199254740992},{views:-1},{conversions:-1},{retention:101}]) {
+      const response = await call(`${base}/metrics`,'PUT',{month:'2026-04',views:100,subsDelta:0,retention:50,conversions:1,...invalid});
+      assert.equal(response.result.status,400);
+    }
+  } finally { db.close(); }
+});

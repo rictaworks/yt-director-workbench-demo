@@ -38,6 +38,7 @@ export class SQLiteTestDatabase implements RepositoryDatabase {
     this.sqlite = new DatabaseSync(':memory:');
     this.sqlite.exec('PRAGMA foreign_keys = ON');
     this.sqlite.exec(readFileSync(new URL('../../migrations/0001_initial.sql', import.meta.url), 'utf8'));
+    this.sqlite.exec(readFileSync(new URL('../../migrations/0002_signed_subscriber_delta.sql', import.meta.url), 'utf8'));
   }
   prepare(sql: string): SQLiteStatement { return new SQLiteStatement(this, sql); }
   async batch(statements: RepositoryStatement[]): Promise<unknown[]> {

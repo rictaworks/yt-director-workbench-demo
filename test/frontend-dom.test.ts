@@ -242,3 +242,108 @@ test('older idea response never clears a newer draft from the draft cache after 
     assert.equal(project.ideas.length,1); assert.equal(project.ideas[0].memo,'先に保存を始めた企画メモ');
   } finally {release(); await f.close();}
 });
+
+test('manual type omission identifies the field accessibly and preserves memo for retry', async () => {
+  const f = await fixture({},true);
+  try {
+    await f.go('ideas');
+    f.fill('memo','架空企画の質問に答えます');
+    f.button(m.manualSave).click();
+    await eventually(() => !f.query('main').hasAttribute('aria-busy'));
+    assert.match(f.query('[role="alert"]').textContent,/手動で型を選ぶ.*選択/);
+    const type = f.query('[name="manualType"]');
+    assert.equal(type.getAttribute('aria-invalid'),'true');
+    assert.ok(f.win.document.getElementById(type.getAttribute('aria-describedby'))?.textContent.includes('選択'));
+    assert.equal(f.query('[name="memo"]').value,'架空企画の質問に答えます');
+    f.fill('manualType','faq',true); await f.submit(m.manualSave);
+    assert.equal(f.query('[name="manualType"]').hasAttribute('aria-invalid'),false);
+  } finally { await f.close(); }
+});
+
+test('script drafts survive routes and plan switches, revert cleanly and clear after save or regeneration', async () => {
+  const f = await fixture({},true);
+  try {
+    await f.go('ideas'); f.fill('memo','架空企画の質問に答えます'); f.fill('manualType','faq'); await f.submit(m.manualSave); await f.submit(m.buildPlan);
+    const firstPlan = f.query('[name="active-plan"]').value;
+    await f.go('outline'); await f.submit(m.buildOutline);
+    f.fill('points-1','未保存の架空要点'); f.fill('shoot-1','未保存の撮影メモ');
+    await f.go('brief'); await f.go('outline');
+    assert.equal(f.query('[name="points-1"]').value,'未保存の架空要点');
+    assert.equal(f.query('[name="shoot-1"]').value,'未保存の撮影メモ');
+    await f.go('ideas'); f.fill('memo','二番目の架空企画です'); f.fill('manualType','howto'); await f.submit(m.manualSave);
+    const card = [...f.root.querySelectorAll('article')].find(item=>item.querySelector('h3')?.textContent==='二番目の架空企画です')!;
+    await f.submit(m.buildPlan,card); await f.go('outline'); await f.submit(m.buildOutline);
+    assert.equal(f.query('[name="points-1"]').value,'');
+    f.fill('active-plan',firstPlan,true);
+    assert.equal(f.query('[name="points-1"]').value,'未保存の架空要点');
+    await f.submit(m.saveNotes);
+    assert.equal((await f.api.request<any>(`/api/projects/${f.projectId}`)).outlines.find((x:any)=>x.planId===firstPlan).blocks[0].talkingPoints,'未保存の架空要点');
+    f.fill('points-1','一時変更'); f.fill('points-1','未保存の架空要点');
+    await f.go('brief'); await f.go('outline');
+    assert.equal(f.query('[name="points-1"]').value,'未保存の架空要点');
+    f.fill('points-1','再作成前の下書き'); await f.submit(m.regenerateOutline);
+    assert.equal(f.query('[name="points-1"]').value,'');
+  } finally { await f.close(); }
+});
+
+test('script drafts stay separate across projects and survive failed and delayed saves', async () => {
+  const f = await fixture({},true);
+  let release = () => {};
+  try {
+    await f.go('ideas'); f.fill('memo','架空案件の台本保持テスト'); f.fill('manualType','faq'); await f.submit(m.manualSave); await f.submit(m.buildPlan);
+    await f.go('outline'); await f.submit(m.buildOutline);
+    const firstProject = f.projectId;
+    f.fill('points-1','保存失敗しても残す要点');
+    f.setInterceptor(async (path, init) => { if (path.includes('/outlines/') && init.method === 'PUT') throw new Error('offline'); });
+    f.button(m.saveNotes).click();
+    await eventually(()=>!f.query('main').hasAttribute('aria-busy'));
+    assert.equal(f.query('[data-script-draft]').textContent,m.notesDraft);
+    await f.go('home'); f.setInterceptor(null);
+    f.fill('clientAlias','架空B社'); await f.submit(m.createProject); await f.submit(m.saveChannel);
+    const secondProject = parseRoute(f.win.location.hash).projectId;
+    f.fill('active-project',firstProject,true);
+    await f.go('outline');
+    assert.equal(f.query('[name="points-1"]').value,'保存失敗しても残す要点');
+    f.fill('active-project',secondProject,true);
+    assert.equal(f.root.querySelector('[name="points-1"]'),null);
+    f.fill('active-project',firstProject,true);
+    const gate = new Promise<void>(resolve=>{release=resolve;});
+    f.setInterceptor(async (path,init)=>{if(path.includes('/outlines/') && init.method==='PUT') await gate;});
+    f.button(m.saveNotes).click();
+    await f.go('brief'); await f.go('outline');
+    f.fill('points-1','応答待ちの新しい要点');
+    release(); await f.idle();
+    await f.go('brief'); await f.go('outline');
+    assert.equal(f.query('[name="points-1"]').value,'応答待ちの新しい要点');
+    assert.equal(f.query('[data-script-draft]').textContent,m.notesDraft);
+    f.fill('points-1','保存失敗しても残す要点');
+    assert.equal(f.query('[data-script-draft]').textContent,'');
+    f.fill('points-1','二回目の保存値');
+    const secondGate = new Promise<void>(resolve=>{release=resolve;});
+    f.setInterceptor(async (path,init)=>{if(path.includes('/outlines/') && init.method==='PUT') await secondGate;});
+    f.button(m.saveNotes).click();
+    await f.go('brief'); await f.go('outline');
+    f.fill('points-1','保存失敗しても残す要点');
+    release(); await f.idle();
+    await f.go('brief'); await f.go('outline');
+    assert.equal(f.query('[name="points-1"]').value,'保存失敗しても残す要点');
+    assert.equal(f.query('[data-script-draft]').textContent,m.notesDraft);
+  } finally { release(); await f.close(); }
+});
+
+test('invalid manual memos cannot bypass validation and never invoke automatic classification', async () => {
+  const f = await fixture({},true);
+  try {
+    await f.go('ideas'); f.fill('manualType','faq');
+    for (const memo of ['', '一', '   ', 'あ'.repeat(501)]) {
+      f.fill('memo',memo);
+      const before = f.requests.length;
+      const button = f.button(m.manualSave);
+      button.closest('form').dispatchEvent(new f.win.SubmitEvent('submit',{bubbles:true,cancelable:true,submitter:button}));
+      await eventually(()=>!f.query('main').hasAttribute('aria-busy'));
+      assert.equal(f.query('[role="alert"]').textContent,m.invalidMemo);
+      assert.equal(f.requests.length,before);
+      assert.equal(f.query('[name="memo"]').value,memo);
+    }
+  } finally { await f.close(); }
+});

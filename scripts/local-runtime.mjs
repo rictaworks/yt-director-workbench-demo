@@ -22,6 +22,12 @@ export async function createRuntime({ port = 8787, persist = true } = {}) {
       const statements = sql.replace(/--[^\n]*/g, '').split(';').map(part => part.trim()).filter(part => part && !/^PRAGMA/i.test(part));
       await database.batch(statements.map(statement => database.prepare(statement)));
     }
+    const schema = await database.prepare("SELECT sql FROM sqlite_master WHERE name = 'monthly_metrics'").first();
+    if (!schema.sql.includes('subs_delta BETWEEN -9007199254740991')) {
+      const migration = await readFile('migrations/0002_signed_subscriber_delta.sql', 'utf8');
+      const statements = migration.replace(/--[^\n]*/g, '').split(';').map(part => part.trim()).filter(Boolean);
+      await database.batch(statements.map(statement => database.prepare(statement)));
+    }
     return runtime;
   } catch (error) { await runtime.dispose(); throw error; }
 }

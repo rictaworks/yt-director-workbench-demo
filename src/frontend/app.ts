@@ -9,6 +9,7 @@ import type { Route, ScreenId } from './view-model.ts';
 
 export interface Bootstrap { projects: ProjectRecord[]; catalog: { industries: Industry[]; goals: Goal[]; ideaTypes: IdeaType[] }; today: string }
 export interface WorkbenchOptions { api?: ApiClient; document?: Document; window?: Window }
+type NoteDraft = { seq: number; talkingPoints: string; shootMemo: string }[];
 type ElementTag = keyof HTMLElementTagNameMap;
 type Control = HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
 
@@ -20,6 +21,7 @@ export class Workbench {
   private data: Bootstrap | null = null;
   private route: Route;
   private activePlan = new Map<string, string>();
+  private scriptDrafts = new Map<string, NoteDraft>();
   private drafts = new Map<string, string>();
   private reportMonth = new Map<string, string>();
   private reportCache = new Map<string, MonthlyReport>();
@@ -271,7 +273,11 @@ export class Workbench {
       if (!isValidMemo(memo)) throw new Error(m.invalidMemo);
       const manual = submitter?.dataset.action === 'manual';
       const ideaType = String(data.get('manualType') ?? '');
-      if (manual && !ideaType) throw new Error(m.chooseType);
+      if (manual && !ideaType) {
+        manualType.setAttribute('aria-invalid', 'true');
+        manualError.textContent = m.manualTypeRequired;
+        throw new Error(m.manualTypeRequired);
+      }
       try {
         const result = await this.mutate(project.id, '/ideas', 'POST', this.payload(data, {memo, ...(manual ? {ideaType} : {})}));
         if (this.canRenderResult()) this.drafts.delete(project.id);
@@ -290,7 +296,15 @@ export class Workbench {
     this.field(form, m.memo, memo, m.memoHint); form.append(this.paragraph(m.privacyNotice));
     const automatic = this.submit(form, m.classify, 'automatic'); automatic.disabled = this.autoStopped;
     if (this.autoStopped) form.append(this.paragraph(m.classificationStopped, 'warning'));
-    this.field(form, m.manual, this.select('manualType', this.data!.catalog.ideaTypes, '', true));
+    const manualType = this.select('manualType', this.data!.catalog.ideaTypes, '', true);
+    this.field(form, m.manual, manualType);
+    const manualError = this.el('small', '', {id: `${manualType.id}-error`});
+    manualType.setAttribute('aria-describedby', manualError.id);
+    manualType.addEventListener('change', () => {
+      manualType.removeAttribute('aria-invalid'); manualError.textContent = '';
+      if (this.error.textContent === m.manualTypeRequired) this.error.textContent = '';
+    });
+    form.append(manualError);
     this.submit(form, m.manualSave, 'manual'); this.content.append(form);
     const ideaSection = this.section(m.ideaList);
     if (!project.ideas.length) ideaSection.append(this.paragraph(m.noIdeas));
@@ -338,8 +352,10 @@ export class Workbench {
   private renderOutline(project: ProjectRecord): void {
     const plan = this.plan; if (!plan) return;
     const outline = project.outlines.find(item => item.planId === plan.id);
+    const draftKey = `${project.id}/${plan.id}/${outline?.id ?? ''}`;
     const form = this.form(async data => {
       await this.mutate(project.id, '/outlines', 'POST', this.payload(data, {planId: plan.id, targetSeconds: Number(data.get('targetSeconds'))}));
+      this.scriptDrafts.delete(draftKey);
     });
     this.field(form, m.targetSeconds, this.input('targetSeconds', 'number', String(outline?.targetSeconds ?? 480), {required: '', min: '1', max: '1800', step: '1'}), m.secondsHint);
     if (outline) form.append(this.paragraph(m.regenerateOutlineNote));
@@ -347,14 +363,32 @@ export class Workbench {
     if (!outline) { this.content.append(this.paragraph(m.noOutline)); return; }
     const section = this.section(`${m.outline} (${outline.targetSeconds}秒)`);
     if (outline.shorts) section.append(this.paragraph(m.shorts)); this.warning(outline.warnings, section);
+    const saved = outline.blocks.map(({seq, talkingPoints, shootMemo}) => ({seq, talkingPoints, shootMemo}));
+    const draft = this.scriptDrafts.get(draftKey) ?? saved;
     const notes = this.form(async data => {
+      const submittedDraft = this.scriptDrafts.get(draftKey);
       await this.mutate(project.id, `/outlines/${encodeURIComponent(outline.id)}`, 'PUT', this.payload(data, {blocks: outline.blocks.map(block => ({seq: block.seq, talkingPoints: String(data.get(`points-${block.seq}`) ?? ''), shootMemo: String(data.get(`shoot-${block.seq}`) ?? '')}))}));
+      // A delayed save must not discard edits made after navigating away and back.
+      if (this.scriptDrafts.get(draftKey) === submittedDraft) this.scriptDrafts.delete(draftKey);
+      // Reverting to the old baseline during the request is also a newer edit:
+      // it becomes dirty once the submitted values replace that baseline.
+      else if (submittedDraft && !this.scriptDrafts.has(draftKey)) this.scriptDrafts.set(draftKey, saved);
     });
-    notes.append(this.paragraph(m.notesHint));
+    const draftStatus = this.el('p', this.scriptDrafts.has(draftKey) ? m.notesDraft : '', {role: 'status', 'data-script-draft': ''});
+    notes.addEventListener('input', () => {
+      const values = saved.map(block => ({seq: block.seq,
+        talkingPoints: notes.querySelector<HTMLTextAreaElement>(`[name="points-${block.seq}"]`)!.value,
+        shootMemo: notes.querySelector<HTMLTextAreaElement>(`[name="shoot-${block.seq}"]`)!.value}));
+      const baseline = this.data?.projects.find(item => item.id === project.id)?.outlines.find(item => item.id === outline.id)?.blocks ?? saved;
+      const dirty = values.some((block, index) => block.talkingPoints !== baseline[index]?.talkingPoints || block.shootMemo !== baseline[index]?.shootMemo);
+      if (dirty) this.scriptDrafts.set(draftKey, values); else this.scriptDrafts.delete(draftKey);
+      draftStatus.textContent = dirty ? m.notesDraft : '';
+    });
+    notes.append(this.paragraph(m.notesHint), draftStatus);
     for (const [index, block] of outline.blocks.entries()) {
       const fieldset = this.el('fieldset'); fieldset.append(this.el('legend', `${index + 1}. ${block.label} (${block.seconds}秒)`));
-      this.field(fieldset, m.talkingPoints, this.textarea(`points-${block.seq}`, block.talkingPoints, {maxlength: '1000'}));
-      this.field(fieldset, m.shootMemo, this.textarea(`shoot-${block.seq}`, block.shootMemo, {maxlength: '1000'})); notes.append(fieldset);
+      this.field(fieldset, m.talkingPoints, this.textarea(`points-${block.seq}`, draft[index]?.talkingPoints ?? block.talkingPoints, {maxlength: '1000'}));
+      this.field(fieldset, m.shootMemo, this.textarea(`shoot-${block.seq}`, draft[index]?.shootMemo ?? block.shootMemo, {maxlength: '1000'})); notes.append(fieldset);
     }
     this.submit(notes, m.saveNotes); section.append(notes, this.el('h3', m.checklist));
     const list = this.el('ul');
@@ -420,7 +454,7 @@ export class Workbench {
     const monthInput = this.input('month', 'month', month, {required: ''});
     monthInput.addEventListener('change', () => { if (monthInput.value) { this.reportMonth.set(project.id, monthInput.value); this.viewRevision.advance(); this.render(); } });
     this.field(form, m.month, monthInput);
-    for (const key of ['views', 'subsDelta', 'retention', 'conversions'] as const) this.field(form, m[key], this.input(key, 'number', metric ? String(metric[key]) : '', {required: '', min: '0', step: key === 'retention' ? 'any' : '1', ...(key === 'retention' ? {max: '100'} : {})}));
+    for (const key of ['views', 'subsDelta', 'retention', 'conversions'] as const) this.field(form, m[key], this.input(key, 'number', metric ? String(metric[key]) : '', {required: '', ...(key === 'subsDelta' ? {} : {min: '0'}), step: key === 'retention' ? 'any' : '1', ...(key === 'retention' ? {max: '100'} : {})}));
     form.append(this.paragraph(m.metricHint)); this.submit(form, m.saveMetrics);
     const reportButton = this.button(m.showReport, () => { void this.run(null, () => this.loadReport(project.id, month)); }); reportButton.disabled = !metric; form.append(reportButton); this.content.append(form);
     const report = this.reportCache.get(`${project.id}/${month}`);
