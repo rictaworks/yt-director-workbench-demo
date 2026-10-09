@@ -1,0 +1,31 @@
+:root { font-family: system-ui, sans-serif; line-height: 1.6; color-scheme: light dark; }
+body { max-width: 76rem; margin: auto; padding: 1rem; }
+a { text-underline-offset: .2em; }
+header, footer { margin-block: 1rem 2rem; }
+nav ol { display: flex; flex-wrap: wrap; gap: .5rem 1.7rem; padding-inline-start: 1.6rem; }
+nav a[aria-current="page"] { font-weight: 700; }
+main { min-height: 45vh; }
+section, article { margin-block: 1.5rem; }
+form, fieldset { margin-block: 1rem; }
+fieldset { min-inline-size: 0; padding: 1rem; }
+label { display: block; margin-block: .8rem .25rem; font-weight: 600; }
+input, select, textarea, button { font: inherit; max-width: 100%; box-sizing: border-box; }
+input, select, textarea { padding: .35rem; }
+textarea { width: 100%; min-height: 6rem; }
+button { cursor: pointer; margin: .5rem .5rem .5rem 0; padding: .4rem .8rem; }
+button:disabled { cursor: wait; }
+small { display: block; }
+table { border-collapse: collapse; width: 100%; }
+th, td { text-align: left; padding: .5rem; border: 1px solid GrayText; vertical-align: top; }
+.table-scroll { overflow-x: auto; }
+[role="alert"]:not(:empty), .warning { padding: .7rem; border: 2px solid currentColor; }
+[role="status"]:empty, [role="alert"]:empty { display: none; }
+.artifact-text { min-height: 14rem; white-space: pre; font-family: monospace; }
+.honeypot { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
+.controls { display: flex; flex-wrap: wrap; gap: .5rem; align-items: end; }
+.project-selector { min-width: 12rem; }
+.muted { color: GrayText; }
+.skip-link { position: absolute; top: -100px; }
+.skip-link:focus { position: static; }
+:focus-visible { outline: 3px solid Highlight; outline-offset: 3px; }
+@media (max-width: 40rem) { body { padding: .6rem; } nav ol { display: block; } input, select { width: 100%; } }
