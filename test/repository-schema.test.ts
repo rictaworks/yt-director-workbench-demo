@@ -9,6 +9,7 @@ function database(): DatabaseSync {
   const db = new DatabaseSync(':memory:');
   db.exec('PRAGMA foreign_keys = ON');
   db.exec(readFileSync(migrationUrl, 'utf8'));
+  db.exec(readFileSync(new URL('../migrations/0002_signed_subscriber_delta.sql', import.meta.url), 'utf8'));
   return db;
 }
 
@@ -58,4 +59,23 @@ test('date constraints reject impossible and unparseable calendar values, includ
   for (const date of ['2026-02-30', '2026-13-01', '2026-00-10', '2026-11-31', '2026-1-01', 'not-a-date']) assert.throws(() => insertTask.run('t', 'a', 's', 'plan', date, 'todo'), /CHECK/, date);
   insertTask.run('t', 'a', 's', 'plan', '2026-10-26', 'todo');
   db.close();
+});
+
+test('signed migration preserves existing rows and enforces integer, ownership and uniqueness constraints', () => {
+  const db = new DatabaseSync(':memory:');
+  try {
+    db.exec(readFileSync(migrationUrl,'utf8'));
+    db.exec("INSERT INTO sessions VALUES ('a','2026-10-09T00:00:00.000Z'),('b','2026-10-09T00:00:00.000Z')");
+    db.exec("INSERT INTO projects VALUES ('p','a','架空QA社','2026-10-09T00:00:00.000Z')");
+    db.exec("INSERT INTO monthly_metrics VALUES ('m','a','p','2026-09',100,10,50,2)");
+    const before = db.prepare('SELECT * FROM monthly_metrics').all();
+    db.exec(readFileSync(new URL('../migrations/0002_signed_subscriber_delta.sql',import.meta.url),'utf8'));
+    assert.deepEqual(db.prepare('SELECT * FROM monthly_metrics').all(),before);
+    const insert = db.prepare('INSERT INTO monthly_metrics VALUES (?,?,?,?,?,?,?,?)');
+    insert.run('negative','a','p','2026-10',100,-10,50,2);
+    for (const invalid of [-1.5,'abc',-9007199254740992]) assert.throws(()=>insert.run('bad','a','p','2026-11',100,invalid,50,2),/CHECK/);
+    assert.throws(()=>insert.run('cross','b','p','2026-11',100,-10,50,2),/FOREIGN KEY/);
+    assert.throws(()=>insert.run('duplicate','a','p','2026-10',100,-10,50,2),/UNIQUE/);
+    assert.deepEqual(db.prepare('PRAGMA foreign_key_check').all(),[]);
+  } finally { db.close(); }
 });

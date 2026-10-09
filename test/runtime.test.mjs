@@ -23,6 +23,9 @@ test('real workerd and local D1 complete a saved project workflow', { timeout: 3
     project=await call(`${base}/schedules`,'POST',{planId,publishDate:'2099-10-30'});
     project=await call(`${base}/edit-briefs`,'POST',{planId});
     assert.equal(project.editBriefs.length,1); assert.equal(project.schedules[0].tasks.length,6);
+    project=await call(`${base}/metrics`,'PUT',{month:'2026-10',views:100,subsDelta:-10,retention:50,conversions:2});
+    assert.equal(project.metrics[0].subsDelta,-10);
+    assert.equal((await call(base)).metrics[0].subsDelta,-10);
     const db=await runtime.getD1Database('DB');
     assert.equal((await db.prepare('SELECT count(*) AS n FROM projects').first()).n,1);
     assert.equal((await db.prepare('PRAGMA foreign_key_check').all()).results.length,0);

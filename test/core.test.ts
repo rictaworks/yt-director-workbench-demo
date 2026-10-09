@@ -155,3 +155,17 @@ test('monthly comparisons handle zero baseline, omitted month and deterministic 
   assert.ok(missing.metrics.every(m => m.previous === null && m.difference === null && m.changeRate === null));
   for (const invalid of [{ ...current, views: -1 }, { ...current, subsDelta: .5 }, { ...current, retention: 101 }, { ...current, conversions: Infinity }, { ...current, views: Number.MAX_SAFE_INTEGER + 1 }]) assert.throws(() => buildMonthlyReport(invalid), DomainValidationError);
 });
+
+test('signed subscriber changes preserve differences and avoid misleading negative-baseline rates', () => {
+  const metric = (subsDelta: number) => ({views:100, subsDelta, retention:50, conversions:2});
+  for (const [previous,current,rate] of [[-10,-5,null],[-5,-10,null],[-10,10,null],[0,-10,null],[10,-10,-200],[10,5,-50]] as const) {
+    const report = buildMonthlyReport(metric(current),metric(previous));
+    const subscribers = report.metrics.find(item => item.key === 'subsDelta')!;
+    assert.equal(subscribers.difference,current-previous);
+    assert.equal(subscribers.changeRate,rate);
+    if (previous < 0) assert.match(subscribers.note,/前月.*負/);
+    assert.ok(report.measures.length <= 3);
+    assert.equal(report.measures.some(item => item.id === 'subscriber-down'), current < previous);
+    assert.ok(!JSON.stringify(report).match(/NaN|Infinity/));
+  }
+});

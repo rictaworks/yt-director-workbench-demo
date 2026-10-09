@@ -197,7 +197,7 @@ test('security: API validators reject hostile field values without modifying sav
       [`/tasks/${before.schedules[0].tasks[0].id}`, 'PATCH', { status: 'complete' }],
       ['/metrics', 'PUT', { month: '2026-13', views: 1, subsDelta: 1, retention: 1, conversions: 1 }],
       ['/metrics', 'PUT', { month: '2026-10', views: 1.5, subsDelta: 1, retention: 1, conversions: 1 }],
-      ['/metrics', 'PUT', { month: '2026-10', views: 1, subsDelta: -1, retention: 1, conversions: 1 }],
+      ['/metrics', 'PUT', { month: '2026-10', views: 1, subsDelta: -1.5, retention: 1, conversions: 1 }],
       ['/metrics', 'PUT', { month: '2026-10', views: 1, subsDelta: 1, retention: 101, conversions: 1 }],
       [`/outlines/${outline.id}`, 'PUT', { blocks: outline.blocks.map((block: any) => ({ ...block, seq: 0 })) }],
       [`/outlines/${outline.id}`, 'PUT', { blocks: outline.blocks.map((block: any) => ({ ...block, talkingPoints: 'あ'.repeat(2001) })) }],

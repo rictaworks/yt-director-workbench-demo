@@ -108,7 +108,7 @@ async function fetchHandler(request: Request, env?: Env): Promise<Response> {
       if (!outline || !schedule) throw new HttpError(409, 'production_required', HTTP_MESSAGES.productionRequired);
       await repository.saveEditBrief(owner, projectId, plan.id, buildEditBrief(outline, plan, schedule));
     } else if (action === 'metrics' && request.method === 'PUT') {
-      await repository.saveMetric(owner, projectId, { month: month(data.month), views: number(data.views, FIELD_LABELS.views, 0, Number.MAX_SAFE_INTEGER), subsDelta: number(data.subsDelta, FIELD_LABELS.subsDelta, 0, Number.MAX_SAFE_INTEGER), retention: number(data.retention, FIELD_LABELS.retention, 0, 100, false), conversions: number(data.conversions, FIELD_LABELS.conversions, 0, Number.MAX_SAFE_INTEGER) });
+      await repository.saveMetric(owner, projectId, { month: month(data.month), views: number(data.views, FIELD_LABELS.views, 0, Number.MAX_SAFE_INTEGER), subsDelta: number(data.subsDelta, FIELD_LABELS.subsDelta, Number.MIN_SAFE_INTEGER, Number.MAX_SAFE_INTEGER), retention: number(data.retention, FIELD_LABELS.retention, 0, 100, false), conversions: number(data.conversions, FIELD_LABELS.conversions, 0, Number.MAX_SAFE_INTEGER) });
     } else throw new HttpError(404, 'not_found', HTTP_MESSAGES.noApi);
     return response(view(requireProject(await repository.getProject(owner, projectId)), today), 200, cookie);
   } catch (error) {
