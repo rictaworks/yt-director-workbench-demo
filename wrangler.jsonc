@@ -1,0 +1,25 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "yt-director-workbench-demo-api",
+  "main": "src/backend/index.ts",
+  "compatibility_date": "2026-10-09",
+  "workers_dev": false,
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "yt-director-workbench-demo-local",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations",
+      "remote": false
+    }
+  ],
+  "triggers": {
+    "crons": [
+      "0 18 * * *"
+    ]
+  },
+  "vars": {
+    "JEV_ENABLED": "false",
+    "WORKERS_PLAN": "free"
+  }
+}

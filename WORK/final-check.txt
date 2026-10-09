@@ -1,0 +1,161 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> yt-director-workbench-demo@0.0.0 check
+> npm run lint && npm run typecheck && npm test && npm run build && npm run build:api && npm run test:runtime
+
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> yt-director-workbench-demo@0.0.0 lint
+> node scripts/check-boundaries.mjs
+
+Boundary checks passed (27 TypeScript files).
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> yt-director-workbench-demo@0.0.0 typecheck
+> tsc -p tsconfig.core.json && tsc -p tsconfig.frontend.json && tsc -p tsconfig.backend.json
+
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> yt-director-workbench-demo@0.0.0 test
+> node --test test/*.test.ts
+
+✔ API completes production workflow, persists notes and tasks, compares months and isolates sessions (72.185134ms)
+✔ API rejects invalid enums, dates and metric ranges; honeypot writes nothing (23.400807ms)
+✔ API persists real adapter contracts for confidence, manual override and daily quota (11.412029ms)
+✔ every supported length and idea type keeps exact total seconds and main-only rounding (41.644014ms)
+✔ optimized calendar matches a day-by-day reference across leap and year boundaries (146.850939ms)
+✔ business-day distance matches inclusive destination and exclusive starting date (50.095134ms)
+✔ all sample fixed schedules preserve shoot/publish and nondecreasing milestones (91.662573ms)
+✔ format validation rejects impossible values at boundaries without normalization (0.667945ms)
+✔ literal replacement metacharacters in audience cannot rewrite templates (0.228103ms)
+✔ monthly integer metrics preserve safe-integer differences and extreme rates stay finite or explicit (0.499732ms)
+✔ malformed classification results stop explicitly and cannot inject an unknown type (0.902889ms)
+✔ channel and generated outputs cannot mutate catalog state (0.41261ms)
+✔ master data implements all ten specified category counts (spec arithmetic is 107) (2.275994ms)
+✔ channel defaults are explicit and every industry/goal has a mapping (1.25664ms)
+✔ memo validates before a classifier can be invoked (0.89722ms)
+✔ classification uses Jev confidence and selected choice separately from probabilities (0.389646ms)
+✔ classifier receives both exact industry cautions and all eight choices (0.391569ms)
+✔ classification failures explicitly stop without another classification (0.449266ms)
+✔ plan includes title variants, summary excerpt and non-recommended warning (0.767645ms)
+✔ all types allocate integer seconds exactly, including shorts and boundaries (4.458388ms)
+✔ calendar validates real dates and handles weekends and leap years deterministically (1.465595ms)
+✔ normal reverse schedule excludes weekends, ignores holidays and finds shortest date (1.453747ms)
+✔ fixed shooting remains fixed, compressed dates stay ordered and earliest date respects prep (0.953405ms)
+✔ delay distinguishes overdue, next business day, completion, and weekend deadlines (0.782477ms)
+✔ edit brief carries caution, user fields, and exact first-draft deadline (0.853253ms)
+✔ monthly comparisons handle zero baseline, omitted month and deterministic max three rules (0.647303ms)
+✔ channel and plan copy include defaults, source limitations and expression cautions (1.265134ms)
+✔ script copy keeps user notes, all blocks, and derived shooting checklist (2.287922ms)
+✔ schedule copy includes calendar caveat, task status and earliest publish date (1.793308ms)
+✔ edit brief copy includes saved notes, draft deadline, all directions and cautions (0.700313ms)
+✔ monthly copy distinguishes zero previous results from missing previous input (24.236595ms)
+✔ actual DOM and Worker complete all seven screens, persistence, notes, tasks, monthly report and clipboard fallback (163.683404ms)
+✔ delayed Worker response preserves newer route input and focus; duplicate submits issue one write (16.307485ms)
+✔ low-confidence UI requires a candidate or explicit other choice and displays caution; regenerated earlier plan stays selected (41.213277ms)
+✔ rendering never interprets stored markup as HTML and every field has an explicit label (12.832046ms)
+✔ high-confidence choice is editable and copying sends the complete displayed artifact (20.337087ms)
+✔ failed save shows an accessible error, retains inputs and can be retried once connectivity returns (18.485402ms)
+✔ older idea response never clears a newer draft from the draft cache after leaving and returning (22.260171ms)
+✔ all seven Japanese screens expose the demo reset and privacy notice (1.319525ms)
+✔ routes only accept known screen IDs and safely round trip project IDs (1.569321ms)
+✔ input helpers avoid empty numeric values and enforce memo length (27.087754ms)
+✔ API client sends same-origin cookies and write honeypot without leaking values in errors (4.469264ms)
+✔ API failure remains an explicit error and is not treated as successful classification (0.785101ms)
+✔ source uses safe DOM methods, accessible status and no native blocking dialogs (12.860188ms)
+✔ API handles network failure and malformed responses with safe Japanese messages (0.841686ms)
+✔ API client understands the Worker flat error format (0.428595ms)
+✔ a delayed save cannot replace a newer screen or selector draft (0.318319ms)
+✔ Jev adapter uses one binding call for choice and caution, preserves confidence separately (0.980155ms)
+✔ disabled or absent binding never calls external service (1.243351ms)
+✔ Jev rejects model drift and malformed responses (2.617718ms)
+✔ quota errors are distinguishable from provider failures (1.078663ms)
+✔ Cloudflare documented 3036 code stops classification as daily quota (0.326331ms)
+✔ schema contains all eleven session-owned entities and clean foreign keys (6.484636ms)
+✔ schema rejects cross-session references and invalid metrics (2.858531ms)
+✔ date constraints reject impossible and unparseable calendar values, including SQL NULL comparisons (2.216224ms)
+✔ full workflow persists all eleven entities and reconstructs flattened artifact records (12.290091ms)
+✔ every relationship rejects writes from another session or the wrong project (7.658892ms)
+✔ upserts keep cardinalities and task status survives schedule recalculation (9.537058ms)
+✔ editable notes are persisted in normalized blocks and cannot replace ownership or timing (4.416455ms)
+✔ nested writes rollback completely when a child violates database constraints (8.916325ms)
+✔ every ordinary SQL operation includes and binds its session; reset is the only global operation (4.400351ms)
+✔ raw composite foreign keys reject cross-session references on every child table (3.573296ms)
+✔ regeneration invalidates derived briefs while identical plan saves preserve work (4.733532ms)
+✔ normalized identity fields take precedence over any extra payload fields (1.483352ms)
+✔ uncertain classification is stored without an automatic selection and retains Jev provenance after manual choice (1.611214ms)
+✔ security: write bodies reject cross-site and wrong-origin requests (14.144015ms)
+✔ security: JSON object protocol rejects primitive bodies and malformed JSON (2.716908ms)
+✔ security: body byte limit is enforced without trusting Content-Length (1.220226ms)
+✔ security: server validators reject unsafe numbers, coercion and invalid enums (0.353041ms)
+✔ security: text validation uses code points and rejects blank or oversized input (0.279841ms)
+✔ security: session cookie is HttpOnly, same-site and expires at the JST daily reset (0.787826ms)
+✔ security: incoming session IDs must be UUIDv4 values (0.525991ms)
+✔ security: DB CHECK constraints reject calendar dates that normalize to NULL (2.003014ms)
+✔ security: API session isolation covers reads, all writes and nested foreign IDs (70.297404ms)
+✔ security: API validators reject hostile field values without modifying saved artifacts (34.734509ms)
+✔ security: honeypot has no DB side effects and infrastructure errors expose no details (2.06062ms)
+✔ security: daily reset is scheduler-only, cascades all entities and rotates old cookies (13.749537ms)
+✔ security: six fully populated valid Unicode script blocks fit the body limit (14.417722ms)
+✔ correctness: changed plans, outlines, notes and schedules cannot expose stale derived briefs (35.125757ms)
+✔ correctness: integer monthly differences retain exact safe-integer precision (0.776048ms)
+✔ correctness: accepted tiny nonzero previous retention never emits non-finite JSON numbers (0.29269ms)
+✔ health endpoint identifies setup status without external calls (8.11614ms)
+✔ unknown endpoint is a JSON 404 (0.598701ms)
+✔ health endpoint rejects writes (0.514955ms)
+ℹ tests 84
+ℹ suites 0
+ℹ pass 84
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 841.93104
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> yt-director-workbench-demo@0.0.0 build
+> vite build
+
+vite v8.3.4 building client environment for production...
+transforming...
+✓ 24 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/pages/index.html                  0.61 kB │ gzip:  0.44 kB
+dist/pages/assets/index-Dyra54oo.css   1.67 kB │ gzip:  0.79 kB
+dist/pages/assets/index-DnPlWKFv.js   59.57 kB │ gzip: 18.34 kB
+
+✓ built in 53ms
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> yt-director-workbench-demo@0.0.0 build:api
+> wrangler deploy --dry-run --outdir dist/worker
+
+▲ [WARNING] Proxy environment variables detected. We'll use your proxy for fetch requests.
+
+
+
+ ⛅️ wrangler 4.149.0
+────────────────────
+Total Upload: 99.79 KiB / gzip: 21.73 KiB
+Your Worker has access to the following bindings:
+Binding                                                  Resource
+env.DB (yt-director-workbench-demo-local)                D1 Database
+env.JEV_ENABLED ("false")                                Environment Variable
+env.WORKERS_PLAN ("free")                                Environment Variable
+
+--dry-run: exiting now.
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> yt-director-workbench-demo@0.0.0 test:runtime
+> node --test test/runtime.test.mjs
+
+✔ real workerd and local D1 complete a saved project workflow (3470.09653ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 6361.443542
