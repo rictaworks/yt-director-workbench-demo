@@ -7,12 +7,16 @@ import { createRuntime } from './local-runtime.mjs';
 const runtime = await createRuntime({port:8787,persist:false});
 const server = await createServer({server:{host:'127.0.0.1',port:5173,strictPort:true}});
 let browser;
+let page;
 try {
   await server.listen();
   browser = await chromium.launch({headless:true,...(process.env.CHROMIUM_PATH?{executablePath:process.env.CHROMIUM_PATH}:{})});
   const context = await browser.newContext({viewport:{width:1280,height:900}});
-  const page = await context.newPage(); page.setDefaultTimeout(15000); const errors=[];
-  page.on('pageerror',error=>errors.push(error.message));
+  page = await context.newPage(); page.setDefaultTimeout(15000); const errors=[];
+  page.on('pageerror',error=>{ errors.push(error.message); console.error('Page error:',error.message); });
+  page.on('console',message=>{ if (message.type()==='error') console.error('Browser console:',message.text()); });
+  page.on('requestfailed',request=>console.error('Failed request:',request.url(),request.failure()?.errorText));
+  page.on('response',response=>{ if (response.status()>=400) console.error('HTTP failure:',response.status(),response.url()); });
   await page.goto('http://127.0.0.1:5173/');
   await page.getByLabel('クライアントの呼称',{exact:true}).fill('A社');
   await page.getByRole('button',{name:'案件を作成',exact:true}).click();
@@ -84,4 +88,12 @@ try {
   assert.equal(errors.length,0,errors.join('\n'));
   console.log('Browser workflow passed: 7 screens, manual recovery, persistence, notes, schedule, brief, report, copy, reload/history and mobile layout.');
   await context.close();
+} catch (error) {
+  if (page) {
+    await mkdir('WORK/screenshots',{recursive:true});
+    await page.screenshot({path:'WORK/screenshots/failure.png',fullPage:true}).catch(()=>{});
+    console.error('Failed page URL:',page.url());
+    console.error('Failed page text:',await page.locator('body').innerText().catch(()=>'(unavailable)'));
+  }
+  throw error;
 } finally { await browser?.close(); await server.close(); await runtime.dispose(); }
