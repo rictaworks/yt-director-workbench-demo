@@ -370,6 +370,9 @@ export class Workbench {
       await this.mutate(project.id, `/outlines/${encodeURIComponent(outline.id)}`, 'PUT', this.payload(data, {blocks: outline.blocks.map(block => ({seq: block.seq, talkingPoints: String(data.get(`points-${block.seq}`) ?? ''), shootMemo: String(data.get(`shoot-${block.seq}`) ?? '')}))}));
       // A delayed save must not discard edits made after navigating away and back.
       if (this.scriptDrafts.get(draftKey) === submittedDraft) this.scriptDrafts.delete(draftKey);
+      // Reverting to the old baseline during the request is also a newer edit:
+      // it becomes dirty once the submitted values replace that baseline.
+      else if (submittedDraft && !this.scriptDrafts.has(draftKey)) this.scriptDrafts.set(draftKey, saved);
     });
     const draftStatus = this.el('p', this.scriptDrafts.has(draftKey) ? m.notesDraft : '', {role: 'status', 'data-script-draft': ''});
     notes.addEventListener('input', () => {

@@ -318,6 +318,16 @@ test('script drafts stay separate across projects and survive failed and delayed
     assert.equal(f.query('[data-script-draft]').textContent,m.notesDraft);
     f.fill('points-1','保存失敗しても残す要点');
     assert.equal(f.query('[data-script-draft]').textContent,'');
+    f.fill('points-1','二回目の保存値');
+    const secondGate = new Promise<void>(resolve=>{release=resolve;});
+    f.setInterceptor(async (path,init)=>{if(path.includes('/outlines/') && init.method==='PUT') await secondGate;});
+    f.button(m.saveNotes).click();
+    await f.go('brief'); await f.go('outline');
+    f.fill('points-1','保存失敗しても残す要点');
+    release(); await f.idle();
+    await f.go('brief'); await f.go('outline');
+    assert.equal(f.query('[name="points-1"]').value,'保存失敗しても残す要点');
+    assert.equal(f.query('[data-script-draft]').textContent,m.notesDraft);
   } finally { release(); await f.close(); }
 });
 
