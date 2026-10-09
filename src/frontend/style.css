@@ -29,3 +29,13 @@ th, td { text-align: left; padding: .5rem; border: 1px solid GrayText; vertical-
 .skip-link:focus { position: static; }
 :focus-visible { outline: 3px solid Highlight; outline-offset: 3px; }
 @media (max-width: 40rem) { body { padding: .6rem; } nav ol { display: block; } input, select { width: 100%; } }
+/* Shared demo shell: amber notice, legal footer, fixed consultation link. */
+body { padding-bottom: 6rem; }
+.demo-banner { background: #fef3c7; color: #78350f; border: 1px solid #d97706; padding: .65rem 1rem; text-align: center; font-weight: 600; }
+footer { border-top: 1px solid GrayText; padding-top: 1rem; }
+.consult-button { position: fixed; right: 1.5rem; bottom: 1rem; z-index: 10; border-radius: 999px; padding: .65rem 1.25rem; background: #1e40af; color: #fff; font-weight: 700; text-decoration: none; box-shadow: 0 4px 12px #0003; }
+.consult-button:hover { background: #1e3a8a; }
+.legal-contact-list { display: grid; grid-template-columns: max-content 1fr; gap: .5rem 1rem; }
+.legal-contact-list dd { margin: 0; overflow-wrap: anywhere; }
+@media (max-width: 40rem) { .consult-button { right: .75rem; } }
+@media print { .consult-button { display: none; } }

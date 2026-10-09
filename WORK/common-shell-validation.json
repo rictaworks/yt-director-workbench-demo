@@ -1,0 +1,81 @@
+{
+  "html": {
+    "version": "26.10.9",
+    "messages": []
+  },
+  "css": {
+    "cssvalidation": {
+      "uri": "file://localhost/TextArea",
+      "checkedby": "http://www.w3.org/2005/07/css-validator",
+      "csslevel": "css3",
+      "date": "2026-10-09T11:34:22Z",
+      "timestamp": "1791588862154",
+      "validity": true,
+      "result": {
+        "errorcount": 0,
+        "warningcount": 0
+      }
+    }
+  },
+  "audit": {
+    "info": 0,
+    "low": 0,
+    "moderate": 0,
+    "high": 0,
+    "critical": 0,
+    "total": 0
+  },
+  "outdated": {},
+  "lighthouse": {
+    "mobile": {
+      "version": "13.5.0",
+      "fetchTime": "2026-10-09T23:34:30.876Z",
+      "url": "http://127.0.0.1:5174/#legal",
+      "scores": {
+        "performance": 100,
+        "accessibility": 100,
+        "best-practices": 96,
+        "seo": 91
+      },
+      "console": [
+        {
+          "source": "network",
+          "description": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "sourceLocation": {
+            "type": "source-location",
+            "url": "http://127.0.0.1:5174/favicon.ico",
+            "urlProvider": "network",
+            "line": 0,
+            "column": 0
+          }
+        }
+      ],
+      "robots": 0
+    },
+    "desktop": {
+      "version": "13.5.0",
+      "fetchTime": "2026-10-09T23:34:56.196Z",
+      "url": "http://127.0.0.1:5174/#legal",
+      "scores": {
+        "performance": 100,
+        "accessibility": 100,
+        "best-practices": 96,
+        "seo": 91
+      },
+      "console": [
+        {
+          "source": "network",
+          "description": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "sourceLocation": {
+            "type": "source-location",
+            "url": "http://127.0.0.1:5174/favicon.ico",
+            "urlProvider": "network",
+            "line": 0,
+            "column": 0
+          }
+        }
+      ],
+      "robots": 0
+    }
+  }
+}

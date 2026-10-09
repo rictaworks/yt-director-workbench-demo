@@ -1,16 +1,18 @@
 import { messages, screens } from './messages.ts';
-export type ScreenId = typeof screens[number]['id'];
+export type ScreenId = typeof screens[number]['id'] | 'legal';
 export interface Route { screen: ScreenId; projectId: string }
 
 export function parseRoute(hash: string): Route {
   try {
     const [screen, projectId = ''] = hash.replace(/^#/, '').split('/');
+    if (screen === 'legal') return {screen: 'legal', projectId: ''};
     return screens.some(item => item.id === screen)
       ? { screen: screen as ScreenId, projectId: decodeURIComponent(projectId) }
       : { screen: 'home', projectId: '' };
   } catch { return { screen: 'home', projectId: '' }; }
 }
 export function routeHash(screen: ScreenId, projectId = ''): string {
+  if (screen === 'legal') return '#legal';
   return `#${screen}${projectId ? `/${encodeURIComponent(projectId)}` : ''}`;
 }
 export function normalizeError(error: unknown): string {
