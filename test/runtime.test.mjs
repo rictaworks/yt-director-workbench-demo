@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import { createServer } from 'vite';
 import { createRuntime } from '../scripts/local-runtime.mjs';
 
 test('real workerd and local D1 complete a saved project workflow', { timeout: 30000 }, async () => {
@@ -27,4 +28,29 @@ test('real workerd and local D1 complete a saved project workflow', { timeout: 3
     assert.equal((await db.prepare('PRAGMA foreign_key_check').all()).results.length,0);
     const outsider=await runtime.dispatchFetch(`http://localhost${base}`); assert.equal(outsider.status,404);
   } finally { await runtime.dispose(); }
+});
+
+
+test('Vite serves the API client module and proxies only API routes', { timeout: 30000 }, async () => {
+  const runtime = await createRuntime({port:8787,persist:false});
+  const server = await createServer({server:{host:'127.0.0.1',port:0,strictPort:true}});
+  try {
+    await server.listen();
+    const address = server.httpServer.address();
+    const origin = `http://127.0.0.1:${address.port}`;
+    const moduleResponse = await fetch(`${origin}/api.ts`);
+    assert.equal(moduleResponse.status, 200, 'frontend api.ts must not be sent to the Worker');
+    assert.match(moduleResponse.headers.get('content-type'), /javascript/);
+    assert.match(await moduleResponse.text(), /export class ApiClient/);
+    const bootstrap = await fetch(`${origin}/api/bootstrap`);
+    assert.equal(bootstrap.status, 200);
+    const cookie = bootstrap.headers.get('set-cookie').split(';')[0];
+    const created = await fetch(`${origin}/api/projects`, {method:'POST',headers:{'content-type':'application/json',origin,cookie},body:JSON.stringify({clientAlias:'開発サーバーテスト',website:''})});
+    assert.equal(created.status,201);
+    assert.equal((await created.json()).clientAlias,'開発サーバーテスト');
+    const crossSite = await fetch(`${origin}/api/projects`, {method:'POST',headers:{'content-type':'application/json',origin:'https://untrusted.example',cookie},body:JSON.stringify({clientAlias:'拒否する案件',website:''})});
+    assert.equal(crossSite.status,403);
+    const saved = await fetch(`${origin}/api/bootstrap`, {headers:{cookie}});
+    assert.equal((await saved.json()).projects.length,1);
+  } finally { await server.close(); await runtime.dispose(); }
 });
