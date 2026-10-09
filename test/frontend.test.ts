@@ -13,6 +13,8 @@ test('all seven Japanese screens expose the demo reset and privacy notice', () =
   assert.match(messages.resetNotice, /JST 03:00/);
   assert.match(messages.privacyNotice, /実名|個人情報/);
   assert.match(messages.generationNotice, /テンプレート/);
+  assert.match(messages.scheduleRegenerateNote, /進行状態.*保持/);
+  assert.doesNotMatch(messages.scheduleRegenerateNote, /初期化/);
 });
 
 test('routes only accept known screen IDs and safely round trip project IDs', () => {

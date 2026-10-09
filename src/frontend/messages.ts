@@ -49,7 +49,7 @@ export const messages = {
   publishDate: '投稿日', shootDate: '撮影日（任意・固定）', scheduleNote: '営業日は土日を除きます。祝日は考慮しません。日付はJST基準です。',
   buildSchedule: '逆算スケジュールを作成', schedule: '制作スケジュール', noScheduleForPlan: 'この企画のスケジュールはまだありません。',
   earliestPublish: '最短で可能な投稿日', earliestShoot: '最短で可能な撮影日', step: '工程', due: '締切日', status: '状態', delay: '遅延判定', update: '更新',
-  scheduleRegenerateNote: '再計算すると、この企画の工程の進行状態が初期化されます。',
+  scheduleRegenerateNote: '再計算しても、この企画の工程の進行状態は保持されます。',
   taskStatuses: { todo: '未着手', in_progress: '進行中', done: '完了' },
   delays: { none: '遅延なし', warning: '要注意', delayed: '遅延' },
   brief: '編集指示書', buildBrief: '編集指示書を作成', noBrief: 'この企画の編集指示書はまだありません。',
